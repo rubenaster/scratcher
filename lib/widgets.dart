@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:scratcher/utils.dart';
 
 import 'painter.dart';
+import 'utils.dart';
 
 const _progressReportStep = 0.1;
 
@@ -33,11 +34,21 @@ double _getAccuracyValue(ScratchAccuracy accuracy) {
   }
 }
 
+/// Scratcher controller to keep track of states from outside
+class ScratcherController {
+  late ScratcherState? _state;
+
+  Future<void> _setState(ScratcherState state) async => _state = state;
+
+  List<ScratchPoint?> get points => [..._state!.points];
+}
+
 /// Scratcher widget which covers given child with scratchable overlay.
 class Scratcher extends StatefulWidget {
   Scratcher({
     Key? key,
     required this.child,
+    ScratcherController? controller,
     this.enabled = true,
     this.threshold,
     this.brushSize = 25,
@@ -49,10 +60,14 @@ class Scratcher extends StatefulWidget {
     this.onScratchStart,
     this.onScratchUpdate,
     this.onScratchEnd,
-  }) : super(key: key);
+  }) : controller = controller ?? ScratcherController(),
+        super(key: key);
 
   /// Widget rendered under the scratch area.
   final Widget child;
+
+  /// Controller that can be injected to check states from outside
+  final ScratcherController controller;
 
   /// Whether new scratches can be applied
   final bool enabled;
@@ -113,6 +128,8 @@ class ScratcherState extends State<Scratcher> {
 
   @override
   void initState() {
+    widget.controller._setState(this);
+
     if (widget.image == null) {
       final completer = Completer<ui.Image?>()..complete();
       _imageLoader = completer.future;
