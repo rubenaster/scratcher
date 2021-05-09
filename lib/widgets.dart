@@ -36,11 +36,46 @@ double _getAccuracyValue(ScratchAccuracy accuracy) {
 
 /// Scratcher controller to keep track of states from outside
 class ScratcherController {
+  ScratcherController({
+    List<ScratchArea>? scratchAreas,
+  }) : scratchAreas = scratchAreas ?? <ScratchArea>[];
+
+  /// A list of areas that will be observed about how much of that area
+  /// has been revealed
+  final List<ScratchArea> scratchAreas;
+
   late ScratcherState? _state;
 
   Future<void> _setState(ScratcherState state) async => _state = state;
 
   List<ScratchPoint?> get points => [..._state!.points];
+}
+
+/// Defines an area on the scratch image to check areal progress
+class ScratchArea {
+  ScratchArea(this.normalizedPosition, this.normalizedSize);
+
+  final Offset normalizedPosition;
+  final Size normalizedSize;
+  final List<Offset> totalCheckpoints = <Offset>[];
+  final List<Offset> finishedCheckpoints = <Offset>[];
+
+  Offset _position = Offset(0, 0);
+  Size _size = Size(0, 0);
+
+  Offset get position => _position;
+
+  Size get size => _size;
+
+  void setSize(Size size) {
+    _position = Offset(size.width * normalizedPosition.dx,
+        size.height * normalizedPosition.dy);
+
+    _size = Size(
+        size.width * normalizedSize.width, size.height * normalizedSize.height);
+  }
+
+  double get progress => finishedCheckpoints.length / totalCheckpoints.length;
 }
 
 /// Scratcher widget which covers given child with scratchable overlay.
@@ -60,7 +95,7 @@ class Scratcher extends StatefulWidget {
     this.onScratchStart,
     this.onScratchUpdate,
     this.onScratchEnd,
-  }) : controller = controller ?? ScratcherController(),
+  })  : controller = controller ?? ScratcherController(),
         super(key: key);
 
   /// Widget rendered under the scratch area.
@@ -255,10 +290,19 @@ class ScratcherState extends State<Scratcher> {
       checked.add(point);
 
       final reached = <Offset>{};
+
       for (final checkpoint in checkpoints) {
         final radius = widget.brushSize / 2;
         if (_inCircle(checkpoint, point, radius)) {
           reached.add(checkpoint);
+        }
+      }
+
+      for (final area in widget.controller.scratchAreas) {
+        for (final reachedPoint in reached) {
+          if (area.totalCheckpoints.contains(reachedPoint)) {
+            area.finishedCheckpoints.add(reachedPoint);
+          }
         }
       }
 
@@ -304,6 +348,24 @@ class ScratcherState extends State<Scratcher> {
           y * yOffset,
         );
         points.add(point);
+      }
+    }
+
+    for (final area in widget.controller.scratchAreas) {
+      area.setSize(size);
+
+      final minX = area.position.dx;
+      final maxX = area.position.dx + area.size.width;
+      final minY = area.position.dy;
+      final maxY = area.position.dy + area.size.height;
+
+      for (final point in points) {
+        if (point.dx >= minX &&
+            point.dx <= maxX &&
+            point.dy >= minY &&
+            point.dy <= maxY) {
+          area.totalCheckpoints.add(point);
+        }
       }
     }
 
