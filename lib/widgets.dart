@@ -379,6 +379,11 @@ class ScratcherState extends State<Scratcher> {
   /// Resets the scratcher state to the initial values.
   void reset({Duration? duration}) {
     setState(() {
+      for (final area in widget.controller.scratchAreas) {
+        area.totalCheckpoints.clear();
+        area.finishedCheckpoints.clear();
+      }
+
       transitionDuration = duration;
       isFinished = false;
       canScratch = duration == null;
