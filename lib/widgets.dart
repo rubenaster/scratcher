@@ -161,6 +161,8 @@ class ScratcherState extends State<Scratcher> {
   bool canScratch = true;
   Duration? transitionDuration;
 
+  Size? _lastCanvasSize;
+
   RenderBox? get _renderObject {
     return context.findRenderObject() as RenderBox?;
   }
@@ -194,8 +196,19 @@ class ScratcherState extends State<Scratcher> {
               points: points,
               color: widget.color,
               onDraw: (size) {
-                if (totalCheckpoints == 0) {
+                if (_lastCanvasSize == null) {
+                  _lastCanvasSize = size;
                   _setCheckpoints(size);
+                } else {
+                  final sizeHasChanged = _lastCanvasSize!.width.round() !=
+                          size.width.round() ||
+                      _lastCanvasSize!.height.round() != size.height.round();
+
+                  if (sizeHasChanged) {
+                    _lastCanvasSize = size;
+                    _setCheckpoints(
+                        size); // TODO: Take over already existing points
+                  }
                 }
               },
             ),
@@ -357,6 +370,8 @@ class ScratcherState extends State<Scratcher> {
 
     for (final area in widget.controller.scratchAreas) {
       area.setSize(size);
+      area.totalCheckpoints.clear();
+      area.finishedCheckpoints.clear();
 
       final minX = area.position.dx;
       final maxX = area.position.dx + area.size.width;
