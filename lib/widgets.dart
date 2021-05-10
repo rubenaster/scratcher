@@ -48,6 +48,10 @@ class ScratcherController {
 
   Future<void> _setState(ScratcherState state) async => _state = state;
 
+  void reveal({Duration? delay}) => _state!.reveal(duration: delay);
+
+  void reset({Duration? delay}) => _state!.reset(duration: delay);
+
   List<ScratchPoint?> get points => [..._state!.points];
 }
 
